@@ -1,0 +1,38 @@
+# Credentials & secrets
+.env
+**/.env
+*.pem
+*.key
+
+# Terraform
+**/.terraform/
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/terraform.tfvars
+**/backend.tfvars
+**/*.tfplan
+crash.log
+
+# CloudFormation
+**/parameters.json
+
+# Lambda build artifacts
+**/lambda/package/
+**/lambda/*.zip
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# OS & editor
+.DS_Store
+.vscode/settings.json
+*.swp
+.idea/
+
+# Outputs
+**/outputs.txt
