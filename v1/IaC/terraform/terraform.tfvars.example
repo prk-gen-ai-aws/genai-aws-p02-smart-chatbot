@@ -1,0 +1,7 @@
+aws_region        = "us-east-1"
+aws_account_id    = "YOUR-12-DIGIT-ACCOUNT-ID"
+project_name      = "p02-ph1-chatbot"
+environment       = "dev"
+bedrock_model_id  = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+session_ttl_hours = 24
+max_messages      = 10
