@@ -1,0 +1,12 @@
+# Sample Conversation 2 — Serverless on AWS
+# Use these questions one by one to test multi-turn memory
+
+Q1: What is AWS Lambda?
+Q2: What are its limitations?
+Q3: How does it compare to EC2 for web applications?
+Q4: What is the maximum timeout we discussed?
+Q5: Give me a simple Python example for what you explained
+
+# Expected behavior: Chatbot remembers Lambda context throughout
+# Q4 tests if it remembers the 15-minute timeout from Q2
+# Q5 tests if it can generate code based on prior explanation

@@ -1,0 +1,12 @@
+# Sample Conversation 1 — AWS Basics
+# Use these questions one by one to test the chatbot's memory
+
+Q1: What is Amazon EC2?
+Q2: What instance types are available?
+Q3: How does pricing work for what we just discussed?
+Q4: What is the difference between on-demand and reserved instances?
+Q5: Which option would you recommend for a startup?
+
+# Expected behavior: Each answer should reference previous context
+# Q3 should answer about EC2 pricing without needing "EC2" repeated
+# Q5 should recommend based on the full conversation history
