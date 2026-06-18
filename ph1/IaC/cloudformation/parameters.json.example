@@ -1,0 +1,30 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "p02-ph1-chatbot"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "AccountSuffix",
+    "ParameterValue": "last-4-digits-of-your-account-id"
+  },
+  {
+    "ParameterKey": "DeploymentVersion",
+    "ParameterValue": "v1"
+  },
+  {
+    "ParameterKey": "BedrockModelId",
+    "ParameterValue": "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+  },
+  {
+    "ParameterKey": "SessionTTLHours",
+    "ParameterValue": "24"
+  },
+  {
+    "ParameterKey": "MaxMessages",
+    "ParameterValue": "10"
+  }
+]

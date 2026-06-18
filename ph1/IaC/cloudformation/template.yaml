@@ -1,0 +1,270 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Project 2 Phase 1 - Smart Q&A Chatbot
+  Serverless chatbot with DynamoDB session memory
+  CloudFormation equivalent of ph1/IaC/terraform/main.tf
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: p02-ph1-chatbot
+    Description: Project identifier used in all resource names
+
+  Environment:
+    Type: String
+    Default: dev
+    Description: Deployment environment
+
+  AccountSuffix:
+    Type: String
+    Default: "5955"
+    Description: Last 4 digits of your AWS account ID
+
+  DeploymentVersion:
+    Type: String
+    Default: "v1"
+    Description: Increment (v2, v3) if recreating stack after destroy
+
+  BedrockModelId:
+    Type: String
+    Default: us.anthropic.claude-haiku-4-5-20251001-v1:0
+    Description: Amazon Bedrock inference profile ID
+
+  SessionTTLHours:
+    Type: Number
+    Default: 24
+    Description: DynamoDB session TTL in hours
+
+  MaxMessages:
+    Type: Number
+    Default: 10
+    Description: Maximum messages to retain per session (sliding window)
+
+Resources:
+
+  # ── S3 Bucket — minimal storage ──
+  ChatbotBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ProjectName}-${Environment}-docs-${AccountSuffix}-${DeploymentVersion}-cf"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ── DynamoDB Table — session memory ──
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-sessions-${AccountSuffix}-cf-${DeploymentVersion}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ── SSM Parameter — Bedrock model ID ──
+  BedrockModelParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/prk/genai/${ProjectName}-cf/bedrock-model-id"
+      Type: String
+      Value: !Ref BedrockModelId
+      Description: Bedrock model ID for P02 chatbot CF deployment
+      Tags:
+        Project: !Ref ProjectName
+        Environment: !Ref Environment
+        ManagedBy: CloudFormation
+
+  # ── IAM Role — Lambda execution ──
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-lambda-role-cf"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub "${ProjectName}-${Environment}-lambda-policy-cf"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: DynamoDBSessionAccess
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt SessionsTable.Arn
+              - Sid: BedrockInvokeModel
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource:
+                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/*"
+                  - !Sub "arn:aws:bedrock:*::foundation-model/*"
+                  - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*"
+                  - "arn:aws:bedrock:us-east-1::inference-profile/*"
+              - Sid: SSMReadModelId
+                Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/prk/genai/*"
+              - Sid: MarketplaceSubscription
+                Effect: Allow
+                Action:
+                  - aws-marketplace:ViewSubscriptions
+                  - aws-marketplace:Subscribe
+                  - aws-marketplace:Unsubscribe
+                Resource: "*"
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ── Lambda Function — chatbot handler ──
+  ChatbotFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-handler-cf"
+      Runtime: python3.12
+      Handler: handler.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      MemorySize: 256
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {
+                  'statusCode': 200,
+                  'body': 'Placeholder - deploy real code after stack creation'
+              }
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref SessionsTable
+          SSM_MODEL_PARAM: !Ref BedrockModelParameter
+          AWS_REGION_NAME: !Ref AWS::Region
+          MAX_MESSAGES: !Sub "${MaxMessages}"
+          SESSION_TTL_HOURS: !Sub "${SessionTTLHours}"
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ── API Gateway — REST API ──
+  ChatbotApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-api-cf"
+      Description: P02 Smart Chatbot API (CloudFormation)
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  ChatResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ChatbotApi
+      ParentId: !GetAtt ChatbotApi.RootResourceId
+      PathPart: chat
+
+  ChatMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ChatbotApi
+      ResourceId: !Ref ChatResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations"
+          - LambdaArn: !GetAtt ChatbotFunction.Arn
+
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: ChatMethod
+    Properties:
+      RestApiId: !Ref ChatbotApi
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref ChatbotApi
+      DeploymentId: !Ref ApiDeployment
+      StageName: !Ref Environment
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ── Lambda Permission — allow API Gateway to invoke ──
+  LambdaApiGatewayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ChatbotFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChatbotApi}/*/*"
+
+Outputs:
+  ApiGatewayUrl:
+    Description: API Gateway endpoint URL - add to .env as API_GATEWAY_URL
+    Value: !Sub "https://${ChatbotApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/chat"
+
+  DynamoDBTableName:
+    Description: DynamoDB session table name
+    Value: !Ref SessionsTable
+
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref ChatbotFunction
+
+  LambdaFunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt ChatbotFunction.Arn
+
+  SSMParameterName:
+    Description: SSM parameter name for Bedrock model ID
+    Value: !Ref BedrockModelParameter
