@@ -156,7 +156,7 @@ elif page == "How it works":
         st.markdown("""
         The AI response is appended to your conversation history and saved back
         to **DynamoDB**. Sessions expire automatically after 24 hours via TTL.
-        Only the last 10 messages are kept (sliding window) to manage costs.
+        Only the last 10 messages are kept (sliding window) to stay within Bedrock context limits and manage costs.
         """)
 
         st.markdown("### Step 5 — Return")
@@ -201,7 +201,7 @@ elif page == "Architecture":
     provisioned as code using **Terraform** and **CloudFormation**.
     """)
 
-    st.info("📐 Architecture diagram: v1/docs/architecture-v1.png (coming soon)")
+    st.info("📐 Architecture diagram: ph1/docs/architecture-ph1.png (coming soon)")
 
     st.markdown("---")
     st.markdown("### Component breakdown")
@@ -270,7 +270,8 @@ elif page == "About":
     | Concern | Consideration |
     |---|---|
     | **Security** | API keys or Cognito for user authentication, VPC endpoints for Bedrock |
-    | **Scalability** | DynamoDB auto-scales, Lambda concurrency limits, Bedrock quota increases |
+    | **Scalability** | DynamoDB auto-scales, Lambda concurrency limits, request Bedrock throughput quota increases |
     | **High Availability** | Multi-region DynamoDB global tables, Lambda retry with backoff |
     | **Cost** | DynamoDB on-demand pricing, prompt caching, session TTL to limit storage |
+    | **Performance** | Async processing via SQS for long-running conversations, streaming responses for better UX |
     """)
